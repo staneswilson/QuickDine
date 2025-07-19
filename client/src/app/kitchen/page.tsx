@@ -74,43 +74,63 @@ export default function KitchenPage() {
   }, []);
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Kitchen Display System</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="min-h-screen bg-secondary p-8">
+      <header className="mb-12">
+        <h1 className="text-4xl font-bold text-primary">Kitchen Display System</h1>
+      </header>
+      <main className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
         {orders.map((order) => (
-          <div key={order.id} className="bg-white shadow-md rounded-lg p-4">
-            <h2 className="text-lg font-semibold mb-2">Table {order.table_id}</h2>
-            <ul>
+          <div key={order.id} className="bg-card rounded-lg shadow-md p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-card-foreground">
+                Table {order.table_id}
+              </h2>
+              <span className="text-lg font-semibold text-muted-foreground">
+                Order #{order.id}
+              </span>
+            </div>
+            <div className="space-y-4">
               {order.items.map((item) => (
-                <li key={item.id} className="mb-2 p-2 border rounded-md">
-                  <div className="flex justify-between">
+                <div key={item.id} className="p-4 border rounded-lg">
+                  <div className="flex justify-between items-start">
                     <div>
-                      <span className="font-semibold">{item.item.name}</span> (x{item.quantity})
+                      <p className="text-lg font-semibold text-card-foreground">{item.item.name}</p>
+                      <p className="text-muted-foreground">Quantity: {item.quantity}</p>
                     </div>
-                    <span className="text-sm font-medium text-gray-600">{item.status}</span>
+                    <span
+                      className={`px-3 py-1 text-sm font-semibold rounded-full capitalize ${
+                        item.status === 'pending'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : item.status === 'in-progress'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-green-100 text-green-800'
+                      }`}
+                    >
+                      {item.status}
+                    </span>
                   </div>
-                  <div className="mt-2">
+                  <div className="mt-4 flex space-x-2">
                     <button
                       onClick={() => handleUpdateStatus(order.id, item.id, 'in-progress')}
-                      className="bg-yellow-500 text-white px-2 py-1 rounded-md mr-2 text-sm"
                       disabled={item.status === 'in-progress' || item.status === 'ready'}
+                      className="flex-1 bg-blue-500 text-white px-3 py-2 rounded-md hover:bg-blue-600 transition-colors disabled:bg-muted disabled:cursor-not-allowed"
                     >
                       In Progress
                     </button>
                     <button
                       onClick={() => handleUpdateStatus(order.id, item.id, 'ready')}
-                      className="bg-green-500 text-white px-2 py-1 rounded-md text-sm"
                       disabled={item.status === 'ready'}
+                      className="flex-1 bg-green-500 text-white px-3 py-2 rounded-md hover:bg-green-600 transition-colors disabled:bg-muted disabled:cursor-not-allowed"
                     >
                       Ready
                     </button>
                   </div>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         ))}
-      </div>
+      </main>
     </div>
   );
 } 

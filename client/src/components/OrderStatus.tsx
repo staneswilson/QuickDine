@@ -60,22 +60,33 @@ export default function OrderStatus({ socket }: OrderStatusProps) {
   }, [socket]);
 
   return (
-    <div>
-      <h2 className="text-xl font-semibold mb-2">Order Status</h2>
-      <div className="bg-gray-100 p-4 rounded-lg">
-        {!order ? (
-          <p>You haven&apos;t placed an order yet.</p>
-        ) : (
-          <ul>
-            {order.items.map((item) => (
-              <li key={item.id} className="flex justify-between">
-                <span>{item.name} (x{item.quantity})</span>
-                <span className="font-medium">{item.status}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+    <div className="bg-card p-6 rounded-lg shadow-sm border mt-8">
+      <h2 className="text-2xl font-bold mb-6 text-card-foreground">Live Status</h2>
+      {!order ? (
+        <p className="text-muted-foreground text-center py-8">Place an order to see its status.</p>
+      ) : (
+        <div className="space-y-4">
+          {order.items.map((item) => (
+            <div key={item.id} className="flex justify-between items-center">
+              <div>
+                <p className="font-semibold text-card-foreground">{item.name}</p>
+                <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
+              </div>
+              <span
+                className={`px-3 py-1 text-sm font-semibold rounded-full capitalize ${
+                  item.status === 'pending'
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : item.status === 'in-progress'
+                    ? 'bg-blue-100 text-blue-800'
+                    : 'bg-green-100 text-green-800'
+                }`}
+              >
+                {item.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 } 
