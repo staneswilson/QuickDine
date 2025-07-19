@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../../auth/useAuth';
+import { useAuth } from '../../../../src/auth/useAuth';
 
 interface Table {
   id: number;

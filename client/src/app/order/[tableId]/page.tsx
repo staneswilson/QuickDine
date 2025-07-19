@@ -5,6 +5,7 @@ import { io, Socket } from 'socket.io-client';
 import Menu from '../../../components/Menu';
 import Cart from '../../../components/Cart';
 import OrderStatus from '../../../components/OrderStatus';
+import { NextPage } from 'next';
 
 interface MenuItem {
   id: number;
@@ -16,13 +17,7 @@ interface CartItem extends MenuItem {
   quantity: number;
 }
 
-interface PageProps {
-  params: {
-    tableId: string;
-  };
-}
-
-export default function OrderPage({ params }: PageProps) {
+const OrderPage: NextPage<{ params: { tableId: string } }> = ({ params }) => {
   const { tableId } = params;
   const [socket, setSocket] = useState<Socket | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -73,4 +68,6 @@ export default function OrderPage({ params }: PageProps) {
       </div>
     </div>
   );
-} 
+};
+
+export default OrderPage; 

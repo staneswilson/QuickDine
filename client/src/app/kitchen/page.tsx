@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { DefaultEventsMap } from '@socket.io/component-emitter';
 import axios from 'axios';
-import { useAuth } from '@/auth/useAuth';
+import { useAuth } from '../../../src/auth/useAuth';
 
 interface OrderItem {
   id: number;
