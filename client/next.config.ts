@@ -2,7 +2,19 @@ import type { NextConfig } from "next";
 
 /** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
-  transpilePackages: ['lucide-react'], // Add this line
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.aws.nestle.recipes',
+      },
+    ],
+  },
+  transpilePackages: ['lucide-react'],
 };
 
 export default nextConfig;

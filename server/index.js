@@ -23,6 +23,102 @@ const io = new Server(server, {
   },
 });
 
+// --- AUTH MIDDLEWARE ---
+const authorizeAdmin = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden: Admins only' });
+    }
+    req.user = decoded;
+    next();
+  } catch (error) {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+};
+// --- END AUTH MIDDLEWARE ---
+
+// --- USER MANAGEMENT ROUTES (Admin only) ---
+app.get('/api/users', authorizeAdmin, async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: { id: true, username: true, role: true, createdAt: true },
+    });
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+app.post('/api/users', authorizeAdmin, async (req, res) => {
+  const { username, password, role } = req.body;
+  try {
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    const newUser = await prisma.user.create({
+      data: { username, password: hashedPassword, role },
+    });
+    res.status(201).json({ id: newUser.id, username: newUser.username, role: newUser.role });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to create user' });
+  }
+});
+
+app.put('/api/users/:id', authorizeAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { username, role } = req.body;
+  try {
+    const updatedUser = await prisma.user.update({
+      where: { id: parseInt(id) },
+      data: { username, role },
+    });
+    res.json({ id: updatedUser.id, username: updatedUser.username, role: updatedUser.role });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update user' });
+  }
+});
+
+app.delete('/api/users/:id', authorizeAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.user.delete({ where: { id: parseInt(id) } });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+// --- END USER MANAGEMENT ROUTES ---
+
+// --- METRICS ROUTES (Admin only) ---
+app.get('/api/metrics/revenue', authorizeAdmin, async (req, res) => {
+  try {
+    const result = await prisma.order.aggregate({
+      _sum: {
+        total_price: true,
+      },
+      where: {
+        status: 'completed',
+      },
+    });
+    const totalRevenue = result._sum.total_price || 0;
+    // Placeholder for percentage change calculation
+    const percentageChange = 20.1; 
+    res.json({ totalRevenue, percentageChange });
+  } catch (error) {
+    console.error('Failed to fetch revenue:', error);
+    res.status(500).json({ error: 'Failed to fetch revenue' });
+  }
+});
+// --- END METRICS ROUTES ---
+
 // --- AUTH ROUTES ---
 app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body;

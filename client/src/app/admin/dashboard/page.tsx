@@ -8,8 +8,9 @@ import { io, Socket } from 'socket.io-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
-import { PlusCircle, Utensils, Zap, CreditCard, X } from 'lucide-react';
+import { PlusCircle, Utensils, Zap, CreditCard, DollarSign, Users, ShoppingCart } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { ModeToggle } from '@/components/mode-toggle';
 
 interface Table {
   id: number;
@@ -36,14 +37,25 @@ interface Order {
   total_price: number;
 }
 
+interface RevenueData {
+  totalRevenue: number;
+  percentageChange: number;
+}
+
 export default function AdminDashboard() {
   useAuth();
   const [tables, setTables] = useState<Table[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [revenue, setRevenue] = useState<RevenueData | null>(null);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [socket, setSocket] = useState<Socket | null>(null);
   const router = useRouter();
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return { headers: { Authorization: `Bearer ${token}` } };
+  };
 
   useEffect(() => {
     const newSocket = io(`${process.env.NEXT_PUBLIC_API_URL}`);
@@ -51,12 +63,14 @@ export default function AdminDashboard() {
 
     const fetchData = async () => {
       try {
-        const [tablesRes, ordersRes] = await Promise.all([
+        const [tablesRes, ordersRes, revenueRes] = await Promise.all([
           axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/tables`),
           axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/orders/active`),
+          axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/metrics/revenue`, getAuthHeaders())
         ]);
         setTables(tablesRes.data);
         setOrders(ordersRes.data);
+        setRevenue(revenueRes.data);
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
       }
@@ -86,6 +100,8 @@ export default function AdminDashboard() {
           order.id === updatedOrder.id ? updatedOrder : order
         )
       );
+      // Refetch revenue data when an order status changes
+      fetchData();
     });
 
     return () => {
@@ -143,28 +159,66 @@ export default function AdminDashboard() {
     }
   };
 
+  const occupiedTables = tables.filter(t => t.status === 'occupied').length;
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-secondary/40">
       <div className="border-b">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center">
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
             <div className="ml-auto flex items-center space-x-2 sm:space-x-4">
+              <Button variant="outline" onClick={() => router.push('/admin/users')}>
+                Manage Users
+              </Button>
               <Button onClick={() => router.push('/admin/menu')}>
                 Manage Menu
               </Button>
+              <ModeToggle />
             </div>
           </div>
         </div>
       </div>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">₹{revenue?.totalRevenue.toFixed(2) ?? '...'}</div>
+              <p className="text-xs text-muted-foreground">+{revenue?.percentageChange ?? '...'}% from last month</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Occupied Tables</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{occupiedTables} / {tables.length}</div>
+              <p className="text-xs text-muted-foreground">Currently serving</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Orders</CardTitle>
+              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">+{orders.length}</div>
+              <p className="text-xs text-muted-foreground">Pending and in-progress</p>
+            </CardContent>
+          </Card>
+        </div>
         <main className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <Card className="lg:col-span-2">
+          <Card className="lg:col-span-2 bg-gradient-to-br from-card to-secondary/30">
             <CardHeader className="flex flex-row items-center justify-between space-x-2">
               <div className="space-y-1">
                 <CardTitle className="text-2xl font-bold">Table Status</CardTitle>
                 <CardDescription>
-                  Monitor and manage table availability.
+                  Click a table to update its status.
                 </CardDescription>
               </div>
               <Button onClick={handleCreateTable} size="sm" className="flex-shrink-0">
@@ -178,7 +232,11 @@ export default function AdminDashboard() {
                   <div
                     key={table.id}
                     onClick={() => setSelectedTable(table)}
-                    className="p-4 rounded-lg text-center font-bold cursor-pointer transition-all hover:shadow-lg hover:scale-105 flex flex-col items-center justify-center aspect-square"
+                    className={`p-4 rounded-lg text-center font-bold cursor-pointer transition-all hover:shadow-lg hover:scale-105 flex flex-col items-center justify-center aspect-square ${
+                      table.status === 'free' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
+                      table.status === 'occupied' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' :
+                      'bg-red-500/10 text-red-500 border-red-500/20'
+                    } border`}
                   >
                     {table.status === 'free' && <Utensils className="h-8 w-8 mb-2" />}
                     {table.status === 'occupied' && <Zap className="h-8 w-8 mb-2" />}
@@ -191,7 +249,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-card to-secondary/30">
             <CardHeader>
               <CardTitle className="text-2xl font-bold">Active Orders</CardTitle>
               <CardDescription>
