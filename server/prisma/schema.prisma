@@ -1,0 +1,50 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Table {
+  id      Int      @id @default(autoincrement())
+  number  Int      @unique
+  status  String   @default("free") // free, occupied, billed
+  orders  Order[]
+}
+
+model MenuItem {
+  id          Int         @id @default(autoincrement())
+  name        String
+  price       Float
+  category    String
+  is_veg      Boolean
+  image_url   String?
+  available   Boolean     @default(true)
+  order_items OrderItem[]
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  table       Table       @relation(fields: [table_id], references: [id])
+  table_id    Int
+  status      String      @default("pending") // pending, confirmed, completed, cancelled
+  created_at  DateTime    @default(now())
+  total_price Float
+  items       OrderItem[]
+}
+
+model OrderItem {
+  id       Int      @id @default(autoincrement())
+  order    Order    @relation(fields: [order_id], references: [id])
+  order_id Int
+  item     MenuItem @relation(fields: [item_id], references: [id])
+  item_id  Int
+  quantity Int
+  note     String?
+  status   String   @default("pending") // pending, in-progress, ready, delivered
+} 
