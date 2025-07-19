@@ -18,6 +18,7 @@ interface MenuItem {
   price: number;
   category: string;
   is_veg: boolean;
+  image_url?: string;
 }
 
 export default function MenuManagementPage() {
@@ -33,7 +34,7 @@ export default function MenuManagementPage() {
 
   const fetchMenuItems = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/menu');
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/api/menu`);
       setMenuItems(response.data);
     } catch (error) {
       console.error('Failed to fetch menu items:', error);
@@ -44,11 +45,16 @@ export default function MenuManagementPage() {
     e.preventDefault();
     if (!editingItem) return;
 
+    const itemToSave = {
+      ...editingItem,
+      price: parseFloat(String(editingItem.price)) || 0,
+    };
+
     try {
-      if ('id' in editingItem && editingItem.id) {
-        await axios.put(`http://localhost:5000/api/menu/${editingItem.id}`, editingItem);
+      if ('id' in itemToSave && itemToSave.id) {
+        await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/api/menu/${itemToSave.id}`, itemToSave);
       } else {
-        await axios.post('http://localhost:5000/api/menu', editingItem);
+        await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/menu`, itemToSave);
       }
       fetchMenuItems();
       closeModal();
@@ -61,7 +67,7 @@ export default function MenuManagementPage() {
     if (!itemToDelete) return;
 
     try {
-      await axios.delete(`http://localhost:5000/api/menu/${itemToDelete.id}`);
+      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/api/menu/${itemToDelete.id}`);
       fetchMenuItems();
       setItemToDelete(null);
     } catch (error) {
@@ -89,58 +95,90 @@ export default function MenuManagementPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <header className="mb-8 flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-foreground">Menu Management</h1>
-        <Button onClick={() => router.push('/admin/dashboard')}>
-          Back to Dashboard
-        </Button>
-      </header>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div className="space-y-1">
-            <CardTitle className="text-2xl font-bold">Menu Items</CardTitle>
-            <CardDescription>
-              Add, edit, or delete menu items.
-            </CardDescription>
+    <div className="min-h-screen bg-background">
+      <div className="border-b">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Menu Management</h1>
+            <div className="ml-auto flex items-center space-x-2 sm:space-x-4">
+              <Button onClick={() => router.push('/admin/dashboard')}>
+                Back to Dashboard
+              </Button>
+            </div>
           </div>
-          <Button onClick={() => openModal({ name: '', price: 0, category: 'Starters', is_veg: false })}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Item
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        </div>
+      </div>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Card>
+          <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <CardTitle className="text-2xl font-bold">Menu Items</CardTitle>
+              <CardDescription>
+                Add, edit, or delete menu items.
+              </CardDescription>
+            </div>
+            <Button onClick={() => openModal({ name: '', price: 0, category: 'Starters', is_veg: false })}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add Item
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="hidden sm:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {menuItems.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell>{item.category}</TableCell>
+                      <TableCell>₹{item.price.toFixed(2)}</TableCell>
+                      <TableCell>{item.is_veg ? 'Veg' : 'Non-Veg'}</TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="icon" onClick={() => openModal(item)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setItemToDelete(item)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="sm:hidden space-y-4">
               {menuItems.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell>{item.category}</TableCell>
-                  <TableCell>₹{item.price.toFixed(2)}</TableCell>
-                  <TableCell>{item.is_veg ? 'Veg' : 'Non-Veg'}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => openModal(item)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setItemToDelete(item)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
+                <Card key={item.id}>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div className="space-y-1">
+                      <CardTitle className="text-xl font-bold">{item.name}</CardTitle>
+                      <CardDescription>
+                        Category: {item.category}, Price: ₹{item.price.toFixed(2)}
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button variant="ghost" size="icon" onClick={() => openModal(item)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => setItemToDelete(item)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                </Card>
               ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Add/Edit Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -157,6 +195,10 @@ export default function MenuManagementPage() {
               <div className="space-y-2">
                 <Label htmlFor="price">Price</Label>
                 <Input id="price" name="price" type="number" value={editingItem?.price || 0} onChange={handleInputChange} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="image_url">Image URL</Label>
+                <Input id="image_url" name="image_url" value={editingItem?.image_url || ''} onChange={handleInputChange} placeholder="https://example.com/image.jpg" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>

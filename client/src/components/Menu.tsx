@@ -14,49 +14,16 @@ interface MenuItem {
 }
 
 interface MenuProps {
+  menu: MenuItem[];
   addToCart: (item: MenuItem) => void;
 }
 
-export default function Menu({ addToCart }: MenuProps) {
-  const [menu, setMenu] = useState<MenuItem[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchMenu = async () => {
-      try {
-        const response = await axios.get('http://localhost:5000/api/menu');
-        setMenu(response.data);
-      } catch (error) {
-        console.error('Failed to fetch menu:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMenu();
-  }, []);
-
-  const groupedMenu = menu.reduce((acc, item) => {
-    if (!acc[item.category]) {
-      acc[item.category] = [];
-    }
-    acc[item.category].push(item);
-    return acc;
-  }, {} as Record<string, MenuItem[]>);
-
+export default function Menu({ menu, addToCart }: MenuProps) {
   return (
-    <section>
-      {loading ? (
-        <p className="text-muted-foreground">Loading menu...</p>
-      ) : (
-        <div className="space-y-16">
-          {Object.entries(groupedMenu).map(([category, items]) => (
-            <div key={category}>
-              <h3 className="text-3xl font-semibold mb-8 capitalize text-primary">
-                {category}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {items.map((item) => (
+    <div>
+      <h2 className="text-3xl font-bold mb-8 text-foreground">Menu</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        {menu.map((item) => (
                   <div key={item.id} className="bg-card rounded-lg shadow-sm flex flex-col border overflow-hidden transform hover:-translate-y-2 transition-transform duration-300">
                     <img
                       src={item.image_url || `https://source.unsplash.com/random/400x300?${item.name.replace(/\s/g,',')}`}
@@ -83,12 +50,8 @@ export default function Menu({ addToCart }: MenuProps) {
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
+        ))}
+      </div>
+    </div>
   );
 } 

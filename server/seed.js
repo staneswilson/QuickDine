@@ -1,7 +1,27 @@
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcrypt');
 const prisma = new PrismaClient();
 
 async function main() {
+  // Clear existing data
+  await prisma.orderItem.deleteMany();
+  await prisma.order.deleteMany();
+  await prisma.menuItem.deleteMany();
+  await prisma.table.deleteMany();
+  await prisma.user.deleteMany();
+
+  // Create users
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash('password', salt);
+
+  await prisma.user.create({
+    data: {
+      username: 'admin',
+      password: hashedPassword,
+      role: 'admin',
+    },
+  });
+
   await prisma.table.createMany({
     data: [
       { number: 1 },

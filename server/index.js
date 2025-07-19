@@ -6,6 +6,8 @@ const { Server } = require("socket.io");
 const cors = require("cors");
 const crypto = require("crypto");
 const { PrismaClient } = require("@prisma/client");
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 const prisma = new PrismaClient();
 const app = express();
@@ -20,6 +22,59 @@ const io = new Server(server, {
     origin: process.env.CLIENT_URL || "http://localhost:3000",
   },
 });
+
+// --- AUTH ROUTES ---
+app.post('/api/auth/login', async (req, res) => {
+  const { username, password } = req.body;
+  console.log('Login attempt for username:', username);
+
+  try {
+    const user = await prisma.user.findUnique({ where: { username } });
+
+    if (!user) {
+      console.log('Login failed: User not found');
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    console.log('User found:', user.username, 'Role:', user.role);
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      console.log('Login failed: Invalid password');
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    console.log('Login successful for user:', username);
+    const token = jwt.sign(
+      { userId: user.id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    res.json({ token, role: user.role });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/auth/verify', (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    res.json({ success: true, user: decoded });
+  } catch (error) {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+});
+// --- END AUTH ROUTES ---
+
 
 app.get("/", (req, res) => {
   res.send("<h1>Welcome to QuickDine API</h1>");
@@ -111,6 +166,37 @@ app.get("/api/orders/:id", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to fetch order" });
+  }
+});
+
+app.put('/api/orders/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  try {
+    const updatedOrder = await prisma.order.update({
+      where: { id: parseInt(id) },
+      data: { status },
+      include: { items: { include: { item: true } } },
+    });
+    io.emit('orderStatusUpdated', updatedOrder);
+    res.json(updatedOrder);
+  } catch (error) {
+    console.error(`Failed to update status for order ${id}:`, error);
+    res.status(500).json({ error: 'Failed to update order status' });
+  }
+});
+
+app.delete('/api/orders/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.order.delete({
+      where: { id: parseInt(id) },
+    });
+    io.emit('orderDeleted', parseInt(id));
+    res.status(204).send();
+  } catch (error) {
+    console.error(`Failed to delete order ${id}:`, error);
+    res.status(500).json({ error: 'Failed to delete order' });
   }
 });
 

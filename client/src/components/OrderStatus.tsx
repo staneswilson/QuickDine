@@ -3,6 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import { Socket } from 'socket.io-client';
 import { DefaultEventsMap } from '@socket.io/component-emitter';
+import { useRouter } from 'next/navigation';
+import { Button } from './ui/button';
+import { CheckCircle, Circle, Dot } from 'lucide-react';
 
 interface OrderItem {
   id: number;
@@ -29,6 +32,8 @@ interface OrderStatusProps {
 
 export default function OrderStatus({ socket }: OrderStatusProps) {
   const [order, setOrder] = useState<Order | null>(null);
+  const [isBilled, setIsBilled] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (socket) {
@@ -56,35 +61,61 @@ export default function OrderStatus({ socket }: OrderStatusProps) {
           };
         });
       });
+
+      socket.on('tableStatusUpdated', ({ tableId, status }) => {
+        // Assuming the customer is at a specific table, you'd check if it's their table.
+        // For this example, we'll just listen for any 'billed' status.
+        if (status === 'billed') {
+          setIsBilled(true);
+        }
+      });
     }
   }, [socket]);
 
+  const allItemsReady = order?.items.every(item => item.status === 'ready');
+
   return (
     <div className="bg-card p-6 rounded-lg shadow-sm border mt-8">
-      <h2 className="text-2xl font-bold mb-6 text-card-foreground">Live Status</h2>
+      <h2 className="text-2xl font-bold mb-6 text-card-foreground">Live Order Status</h2>
       {!order ? (
-        <p className="text-muted-foreground text-center py-8">Place an order to see its status.</p>
+        <p className="text-muted-foreground text-center py-8">Your order details will appear here.</p>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {order.items.map((item) => (
-            <div key={item.id} className="flex justify-between items-center">
-              <div>
+            <div key={item.id} className="flex items-center">
+              <div className="flex-shrink-0 mr-4">
+                {item.status === 'ready' ? (
+                  <CheckCircle className="h-6 w-6 text-green-500" />
+                ) : item.status === 'in-progress' ? (
+                  <Dot className="h-6 w-6 text-blue-500 animate-pulse" />
+                ) : (
+                  <Circle className="h-6 w-6 text-yellow-500" />
+                )}
+              </div>
+              <div className="flex-grow">
                 <p className="font-semibold text-card-foreground">{item.name}</p>
                 <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
               </div>
-              <span
-                className={`px-3 py-1 text-sm font-semibold rounded-full capitalize ${
-                  item.status === 'pending'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : item.status === 'in-progress'
-                    ? 'bg-blue-100 text-blue-800'
-                    : 'bg-green-100 text-green-800'
-                }`}
-              >
-                {item.status}
+              <span className="text-sm font-semibold capitalize">
+                {item.status.replace('-', ' ')}
               </span>
             </div>
           ))}
+          
+          {allItemsReady && !isBilled && (
+            <div className="text-center text-green-600 font-semibold pt-4 border-t">
+              Your order is ready for pickup!
+            </div>
+          )}
+
+          {isBilled && (
+            <div className="pt-6 border-t mt-6 text-center">
+              <p className="text-lg font-semibold mb-4">Your invoice is ready.</p>
+              <Button onClick={() => router.push(`/invoice/${order.id}`)}>
+                View Invoice
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

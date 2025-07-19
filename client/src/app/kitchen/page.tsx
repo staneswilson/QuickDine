@@ -5,6 +5,9 @@ import { io, Socket } from 'socket.io-client';
 import { DefaultEventsMap } from '@socket.io/component-emitter';
 import axios from 'axios';
 import { useAuth } from '../../../src/auth/useAuth';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface OrderItem {
   id: number;
@@ -74,63 +77,63 @@ export default function KitchenPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-secondary p-8">
-      <header className="mb-12">
-        <h1 className="text-4xl font-bold text-primary">Kitchen Display System</h1>
-      </header>
-      <main className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
-        {orders.map((order) => (
-          <div key={order.id} className="bg-card rounded-lg shadow-md p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-card-foreground">
-                Table {order.table_id}
-              </h2>
-              <span className="text-lg font-semibold text-muted-foreground">
-                Order #{order.id}
-              </span>
-            </div>
-            <div className="space-y-4">
-              {order.items.map((item) => (
-                <div key={item.id} className="p-4 border rounded-lg">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-lg font-semibold text-card-foreground">{item.item.name}</p>
-                      <p className="text-muted-foreground">Quantity: {item.quantity}</p>
-                    </div>
-                    <span
-                      className={`px-3 py-1 text-sm font-semibold rounded-full capitalize ${
-                        item.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : item.status === 'in-progress'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-green-100 text-green-800'
-                      }`}
-                    >
-                      {item.status}
-                    </span>
-                  </div>
-                  <div className="mt-4 flex space-x-2">
-                    <button
-                      onClick={() => handleUpdateStatus(order.id, item.id, 'in-progress')}
-                      disabled={item.status === 'in-progress' || item.status === 'ready'}
-                      className="flex-1 bg-blue-500 text-white px-3 py-2 rounded-md hover:bg-blue-600 transition-colors disabled:bg-muted disabled:cursor-not-allowed"
-                    >
-                      In Progress
-                    </button>
-                    <button
-                      onClick={() => handleUpdateStatus(order.id, item.id, 'ready')}
-                      disabled={item.status === 'ready'}
-                      className="flex-1 bg-green-500 text-white px-3 py-2 rounded-md hover:bg-green-600 transition-colors disabled:bg-muted disabled:cursor-not-allowed"
-                    >
-                      Ready
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+    <div className="min-h-screen bg-background">
+      <div className="border-b">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Kitchen Display</h1>
+            {/* You could add a filter or other controls here */}
           </div>
-        ))}
-      </main>
+        </div>
+      </div>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          {orders.map((order) => (
+            <Card key={order.id}>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Table {order.table_id}</CardTitle>
+                <Badge>Order #{order.id}</Badge>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {order.items.map((item) => (
+                  <div key={item.id} className="p-4 border rounded-lg">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-semibold">{item.item.name}</p>
+                        <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
+                      </div>
+                      <Badge variant={
+                        item.status === 'pending' ? 'default' :
+                        item.status === 'in-progress' ? 'secondary' :
+                        'outline'
+                      }>
+                        {item.status}
+                      </Badge>
+                    </div>
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      <Button
+                        onClick={() => handleUpdateStatus(order.id, item.id, 'in-progress')}
+                        disabled={item.status === 'in-progress' || item.status === 'ready'}
+                        size="sm"
+                      >
+                        In Progress
+                      </Button>
+                      <Button
+                        onClick={() => handleUpdateStatus(order.id, item.id, 'ready')}
+                        disabled={item.status === 'ready'}
+                        size="sm"
+                        variant="secondary"
+                      >
+                        Ready
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ))}
+        </main>
+      </div>
     </div>
   );
 } 
