@@ -11,6 +11,13 @@ interface OrderItem {
   status: string;
 }
 
+interface NewOrderItem {
+  id: number;
+  item: { name: string };
+  quantity: number;
+  status: string;
+}
+
 interface Order {
   id: number;
   items: OrderItem[];
@@ -26,7 +33,7 @@ export default function OrderStatus({ socket }: OrderStatusProps) {
   useEffect(() => {
     if (socket) {
       socket.on('newOrder', (newOrder) => {
-        const items = newOrder.items.map((item: any) => ({
+        const items = newOrder.items.map((item: NewOrderItem) => ({
           id: item.id,
           name: item.item.name,
           quantity: item.quantity,
@@ -57,7 +64,7 @@ export default function OrderStatus({ socket }: OrderStatusProps) {
       <h2 className="text-xl font-semibold mb-2">Order Status</h2>
       <div className="bg-gray-100 p-4 rounded-lg">
         {!order ? (
-          <p>You haven't placed an order yet.</p>
+          <p>You haven&apos;t placed an order yet.</p>
         ) : (
           <ul>
             {order.items.map((item) => (
