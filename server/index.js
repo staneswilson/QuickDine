@@ -6,22 +6,18 @@ const { Server } = require("socket.io");
 const cors = require("cors");
 const crypto = require("crypto");
 const { PrismaClient } = require("@prisma/client");
-const Razorpay = require("razorpay");
 
 const prisma = new PrismaClient();
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
-
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: process.env.CLIENT_URL || "http://localhost:3000"
+}));
 app.use(express.json());
 
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: process.env.CLIENT_URL || "http://localhost:3000",
   },
 });
 
@@ -87,6 +83,10 @@ app.put("/api/tables/:id", async (req, res) => {
       where: { id: parseInt(id, 10) },
       data: { status },
     });
+    
+    // Broadcast the status update to all clients
+    io.emit('tableStatusUpdated', updatedTable);
+    
     res.json(updatedTable);
   } catch (error) {
     console.error(error);
@@ -153,41 +153,22 @@ app.delete("/api/menu/:id", async (req, res) => {
   }
 });
 
+// --- DUMMY PAYMENT INTEGRATION ---
 app.post("/api/payment/create-order", async (req, res) => {
-  try {
-    const { amount, receipt } = req.body;
-    const options = {
-      amount: amount * 100, // amount in the smallest currency unit
-      currency: "INR",
-      receipt,
-    };
-    const order = await razorpay.orders.create(options);
-    res.json(order);
-  } catch (error) {
-    console.error("Failed to create Razorpay order:", error);
-    res.status(500).json({ error: "Failed to create Razorpay order" });
-  }
+  console.log("DUMMY: Creating payment order", req.body);
+  // In a real scenario, you'd interact with a payment gateway.
+  // Here, we just create a dummy order ID.
+  const dummyOrderId = "order_" + crypto.randomBytes(12).toString("hex");
+  res.json({ id: dummyOrderId, amount: req.body.amount * 100 });
 });
 
 app.post("/api/payment/verify", (req, res) => {
-  try {
-    const { order_id, payment_id, signature } = req.body;
-    const hmac = crypto.createHmac("sha256", process.env.RAZORPAY_KEY_SECRET);
-    hmac.update(order_id + "|" + payment_id);
-    const generated_signature = hmac.digest("hex");
-
-    if (generated_signature === signature) {
-      // Payment is successful
-      // Here, you would typically update the order status in your database
-      res.json({ success: true, message: "Payment verified successfully" });
-    } else {
-      res.status(400).json({ success: false, message: "Payment verification failed" });
-    }
-  } catch (error) {
-    console.error("Failed to verify payment:", error);
-    res.status(500).json({ error: "Failed to verify payment" });
-  }
+  console.log("DUMMY: Verifying payment", req.body);
+  // In a real scenario, you'd verify a signature.
+  // Here, we just simulate a successful verification.
+  res.json({ success: true, message: "Payment verified successfully (dummy)" });
 });
+// --- END DUMMY PAYMENT INTEGRATION ---
 
 io.on('connection', (socket) => {
   console.log('a user connected');
