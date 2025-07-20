@@ -1,8 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Socket } from 'socket.io-client';
-import { DefaultEventsMap } from '@socket.io/component-emitter';
 import { Button } from './ui/button';
 
 interface MenuItem {
