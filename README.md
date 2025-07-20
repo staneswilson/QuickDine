@@ -4,6 +4,10 @@
 
 QuickDine is a modern, full-stack restaurant management solution that enables contactless ordering, real-time updates, and efficient administration through a polished and intuitive user interface.
 
+## 🎥 Demo Video
+
+Watch QuickDine in action: [https://youtu.be/8p_t-F_ZToU](https://youtu.be/8p_t-F_ZToU)
+
 ## Features
 
 - **QR Code Ordering**: Customers can scan a table-specific QR code to instantly access the menu.
